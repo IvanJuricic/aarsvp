@@ -1,1 +1,1 @@
-*.yuv
+lab2/rgb_video.yuv
