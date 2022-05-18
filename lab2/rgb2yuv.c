@@ -17,6 +17,7 @@ int main(void) {
     printf("Hello there\n");
 
     char buff[255], c;
+    int progress = -1;
 
     RGB rgb;
     YUV yuv;
@@ -28,7 +29,7 @@ int main(void) {
         printf("Error opening file\n");
         return -1;
     }
-
+    
     for(int i = 0; i < PIXEL_COUNT; i++) {
         fseek(rgbFile, i, SEEK_SET);
         rgb.r = fgetc(rgbFile);
@@ -37,12 +38,23 @@ int main(void) {
         fseek(rgbFile, i + PIXEL_COUNT * 2, SEEK_SET);
         rgb.b = fgetc(rgbFile);
 
+        //printf("Iz originala => \nR: %x G: %x B: %x\n", rgb.r, rgb.g, rgb.b);
         yuv = convert2yuv(rgb);
+        //printf("Konvertirano => \nY: %x U: %x V: %x\n", yuv.y, yuv.u, yuv.v);
+        
+        fseek(yuvFile, i, SEEK_SET);
+        fputc(yuv.y, yuvFile);
+        fseek(yuvFile, i + PIXEL_COUNT, SEEK_SET);
+        fputc(yuv.u, yuvFile);
+        fseek(yuvFile, i + PIXEL_COUNT * 2, SEEK_SET);
+        fputc(yuv.v, yuvFile);
+        
+        if( (i / (PIXEL_COUNT / 20)) > progress) {
+            printf("%.2f\n", ((float)i/(float)(PIXEL_COUNT)));
+            progress++;
+        }
+        
     }
-
-    printf("Tu smo\n");
-    //yuv = convert2yuv(rgb);
-    printf("A sad tu\n");
 
     fclose(rgbFile);
     fclose(yuvFile);
