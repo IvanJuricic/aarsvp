@@ -24,8 +24,10 @@ int main(void) {
 
     FILE *rgbFile = fopen("rgb_video.yuv", "rb");
     FILE *yuvFile = fopen("yuv_video.yuv", "ab");
+    FILE *yuvFileCompressed = fopen("yuv_video_comp.yuv", "ab");
+    FILE *yuvFileOverSample = fopen("yuv_video_over.yuv", "ab");
 
-    if(rgbFile == NULL || yuvFile == NULL) {
+    if(rgbFile == NULL || yuvFile == NULL || yuvFileCompressed == NULL || yuvFileOverSample == NULL) {
         printf("Error opening file\n");
         return -1;
     }
@@ -42,15 +44,10 @@ int main(void) {
         yuv = convert2yuv(rgb);
         //printf("Konvertirano => \nY: %x U: %x V: %x\n", yuv.y, yuv.u, yuv.v);
         
-        fseek(yuvFile, i, SEEK_SET);
-        fputc(yuv.y, yuvFile);
-        fseek(yuvFile, i + PIXEL_COUNT, SEEK_SET);
-        fputc(yuv.u, yuvFile);
-        fseek(yuvFile, i + PIXEL_COUNT * 2, SEEK_SET);
-        fputc(yuv.v, yuvFile);
-        
+        writeToFile(yuvFile, i, yuv);
+
         if( (i / (PIXEL_COUNT / 20)) > progress) {
-            printf("%.2f\n", ((float)i/(float)(PIXEL_COUNT)));
+            printf("%.2f\n", ((float)i/(float)(PIXEL_COUNT)) / 100);
             progress++;
         }
         
@@ -60,6 +57,15 @@ int main(void) {
     fclose(yuvFile);
 
     return 0;
+}
+
+void writeToFile(FILE *f, int pos, YUV yuv) {
+    fseek(f, pos, SEEK_SET);
+    fputc(yuv.y, f);
+    fseek(f, pos + PIXEL_COUNT, SEEK_SET);
+    fputc(yuv.u, f);
+    fseek(f, pos + PIXEL_COUNT * 2, SEEK_SET);
+    fputc(yuv.v, f);
 }
 
 YUV convert2yuv(RGB rgb) {
