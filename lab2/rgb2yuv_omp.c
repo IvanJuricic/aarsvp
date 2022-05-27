@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <omp.h>
+#include <time.h>
 
 #define PIXEL_COUNT 3840 * 2160
 #define MAX_FRAMES 60
@@ -38,7 +39,7 @@ int main(void)
         //     return -1;
         // }
 
-        start = omp_get_wtime();
+        clock_t begin = clock();
 
         #pragma omp for
         int frame;
@@ -102,8 +103,9 @@ int main(void)
                 }*/
             }   
 
-            delta = omp_get_wtime() - start;
-            printf("frame: %d time: %.5g seconds\n", frame+1, delta);
+            clock_t end = clock();
+            double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+            printf("frame: %d time: %ld seconds\n", frame+1, time_spent);
         }
 
     }
