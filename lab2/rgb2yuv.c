@@ -1,6 +1,10 @@
 #include <stdio.h>
+#include <stdint.h>
+//#include <omp.h>
+#include <time.h>
 
 #define PIXEL_COUNT 3840 * 2160
+#define MAX_FRAMES 60
 
 typedef struct {
     char r, g, b;
@@ -13,59 +17,93 @@ typedef struct {
 YUV convert2yuv(RGB rgb);
 
 int main(void) {
-
-    printf("Hello there\n");
-
-    char buff[255], c;
-    int progress = -1;
+    double start, delta;
 
     RGB rgb;
     YUV yuv;
 
-    FILE *rgbFile = fopen("rgb_video.yuv", "rb");
-    FILE *yuvFile = fopen("yuv_video.yuv", "ab");
-    FILE *yuvFileCompressed = fopen("yuv_video_comp.yuv", "ab");
-    FILE *yuvFileOverSample = fopen("yuv_video_over.yuv", "ab");
+    printf("TRACE\n");
 
-    if(rgbFile == NULL || yuvFile == NULL || yuvFileCompressed == NULL || yuvFileOverSample == NULL) {
-        printf("Error opening file\n");
-        return -1;
-    }
-    
-    for(int i = 0; i < PIXEL_COUNT; i++) {
-        fseek(rgbFile, i, SEEK_SET);
-        rgb.r = fgetc(rgbFile);
-        fseek(rgbFile, i + PIXEL_COUNT, SEEK_SET);
-        rgb.g = fgetc(rgbFile);
-        fseek(rgbFile, i + PIXEL_COUNT * 2, SEEK_SET);
-        rgb.b = fgetc(rgbFile);
+    // #pragma omp parallel
+    // {
+        FILE *rgbFile = fopen("rgb_video.yuv", "rb");
+        FILE *yuvFile = fopen("yuv_video.yuv_omp", "ab");
+        FILE *yuv420File = fopen("yuv420_video.yuv_omp", "ab");
+        FILE *yuv444File = fopen("yuv444_video.yuv_omp", "ab");
 
-        //printf("Iz originala => \nR: %x G: %x B: %x\n", rgb.r, rgb.g, rgb.b);
-        yuv = convert2yuv(rgb);
-        //printf("Konvertirano => \nY: %x U: %x V: %x\n", yuv.y, yuv.u, yuv.v);
-        
-        writeToFile(yuvFile, i, yuv);
+        // if(rgbFile == NULL || yuvFile == NULL || yuv420File == NULL || yuv444File == NULL)
+        // {
+        //     printf("Error opening file\n");
+        //     return -1;
+        // }
 
-        if( (i / (PIXEL_COUNT / 20)) > progress) {
-            printf("%.2f\n", ((float)i/(float)(PIXEL_COUNT)) / 100);
-            progress++;
+        clock_t begin = clock();
+
+        for(int frame = 0; frame < MAX_FRAMES; ++frame)
+        {
+            for(int i = 0; i < PIXEL_COUNT; i++) 
+            {
+                int pos1 = frame*PIXEL_COUNT*3+i;
+                int pos2 = frame*PIXEL_COUNT*3+i+PIXEL_COUNT;
+                int pos3 = frame*PIXEL_COUNT*3+i+PIXEL_COUNT*2;
+
+                fseek(rgbFile, pos1, SEEK_SET);
+                rgb.r = fgetc(rgbFile);
+                fseek(rgbFile, pos2, SEEK_SET);
+                rgb.g = fgetc(rgbFile);
+                fseek(rgbFile, pos3, SEEK_SET);
+                rgb.b = fgetc(rgbFile);
+
+                yuv = convert2yuv(rgb);
+
+                // ========== yuv ==========
+                fseek(yuvFile, pos1, SEEK_SET);
+                fputc(yuv.y, yuvFile);
+                fseek(yuvFile, pos2, SEEK_SET);
+                fputc(yuv.u, yuvFile);
+                fseek(yuvFile, pos3, SEEK_SET);
+                fputc(yuv.v, yuvFile);
+/*
+                // ========== yuv420 && yuv444 ==========
+                fseek(yuv420File, pos1, SEEK_SET);
+                fputc(yuv.y, yuv420File);
+
+                fseek(yuv444File, pos1, SEEK_SET);
+                fputc(yuv.y, yuv444File);
+
+                if (i % 2 == 0)
+                {
+                    fseek(yuv420File, pos2/2, SEEK_SET);
+                    fputc(yuv.u, yuv420File);
+
+                    fseek(yuv444File, pos2, SEEK_SET);
+                    fputc(yuv.u, yuv444File);
+                    fseek(yuv444File, pos2+1, SEEK_SET);
+                    fputc(yuv.u, yuv444File);
+
+                    if (i % 4 == 0)
+                    {
+                        fseek(yuv420File, pos3/4, SEEK_SET);
+                        fputc(yuv.v, yuv420File);
+
+                        fseek(yuv444File, pos3, SEEK_SET);
+                        fputc(yuv.v, yuv444File);
+                        fseek(yuv444File, pos3+1, SEEK_SET);
+                        fputc(yuv.v, yuv444File);
+                        fseek(yuv444File, pos3+2, SEEK_SET);
+                        fputc(yuv.v, yuv444File);
+                        fseek(yuv444File, pos3+3, SEEK_SET);
+                        fputc(yuv.v, yuv444File);
+                    }
+                }*/
+            }   
+
+            clock_t end = clock();
+            double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+            printf("frame: %d time: %ld seconds\n", frame+1, time_spent);
         }
-        
-    }
-
-    fclose(rgbFile);
-    fclose(yuvFile);
 
     return 0;
-}
-
-void writeToFile(FILE *f, int pos, YUV yuv) {
-    fseek(f, pos, SEEK_SET);
-    fputc(yuv.y, f);
-    fseek(f, pos + PIXEL_COUNT, SEEK_SET);
-    fputc(yuv.u, f);
-    fseek(f, pos + PIXEL_COUNT * 2, SEEK_SET);
-    fputc(yuv.v, f);
 }
 
 YUV convert2yuv(RGB rgb) {
