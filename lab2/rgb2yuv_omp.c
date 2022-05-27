@@ -41,9 +41,11 @@ int main(void)
         start = omp_get_wtime();
 
         #pragma omp for
-        for(int frame = 0; frame < MAX_FRAMES; ++frame)
+        int frame;
+        for(frame = 0; frame < MAX_FRAMES; ++frame)
         {
-            for(int i = 0; i < PIXEL_COUNT; i++) 
+            int i;
+            for(i = 0; i < PIXEL_COUNT; i++) 
             {
                 int pos1 = frame*PIXEL_COUNT*3+i;
                 int pos2 = frame*PIXEL_COUNT*3+i+PIXEL_COUNT;
