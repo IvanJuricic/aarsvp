@@ -23,20 +23,14 @@ int main(void)
     RGB rgb;
     YUV yuv;
 
-    printf("TRACE\n");
+    printf("START!\n");
 
     #pragma omp parallel
     {
         FILE *rgbFile = fopen("rgb_video.yuv", "rb");
         FILE *yuvFile = fopen("yuv_video_sek.yuv", "ab");
-        FILE *yuv420File = fopen("yuv420_video_sek.yuv", "ab");
-        FILE *yuv444File = fopen("yuv444_video_sek.yuv", "ab");
-
-        // if(rgbFile == NULL || yuvFile == NULL || yuv420File == NULL || yuv444File == NULL)
-        // {
-        //     printf("Error opening file\n");
-        //     return -1;
-        // }
+        FILE *yuv420 = fopen("yuv420_video_sek.yuv", "ab");
+        FILE *yuv444 = fopen("yuv444_video_sek.yuv", "ab");
 
         start = omp_get_wtime();
 
@@ -58,46 +52,47 @@ int main(void)
                 
                 yuv = convert2yuv(rgb);
 
-                // ========== yuv ==========
+                //Generic
                 fseek(yuvFile, pos1, SEEK_SET);
                 fputc(yuv.y, yuvFile);
                 fseek(yuvFile, pos2, SEEK_SET);
                 fputc(yuv.u, yuvFile);
                 fseek(yuvFile, pos3, SEEK_SET);
                 fputc(yuv.v, yuvFile);
-                /*
-                // ========== yuv420 && yuv444 ==========
-                fseek(yuv420File, pos1, SEEK_SET);
-                fputc(yuv.y, yuv420File);
+                
+                // 420
+                fseek(yuv420, pos1, SEEK_SET);
+                fputc(yuv.y, yuv420);
 
-                fseek(yuv444File, pos1, SEEK_SET);
-                fputc(yuv.y, yuv444File);
+                fseek(yuv444, pos1, SEEK_SET);
+                fputc(yuv.y, yuv444);
 
                 if (i % 2 == 0)
                 {
-                    fseek(yuv420File, pos2/2, SEEK_SET);
-                    fputc(yuv.u, yuv420File);
+                    fseek(yuv420, pos2/2, SEEK_SET);
+                    fputc(yuv.u, yuv420);
 
-                    fseek(yuv444File, pos2, SEEK_SET);
-                    fputc(yuv.u, yuv444File);
-                    fseek(yuv444File, pos2+1, SEEK_SET);
-                    fputc(yuv.u, yuv444File);
+                    fseek(yuv444, pos2, SEEK_SET);
+                    fputc(yuv.u, yuv444);
+                    fseek(yuv444, pos2+1, SEEK_SET);
+                    fputc(yuv.u, yuv444);
 
+                    // 444
                     if (i % 4 == 0)
                     {
-                        fseek(yuv420File, pos3/4, SEEK_SET);
-                        fputc(yuv.v, yuv420File);
+                        fseek(yuv420, pos3/4, SEEK_SET);
+                        fputc(yuv.v, yuv420);
 
-                        fseek(yuv444File, pos3, SEEK_SET);
-                        fputc(yuv.v, yuv444File);
-                        fseek(yuv444File, pos3+1, SEEK_SET);
-                        fputc(yuv.v, yuv444File);
-                        fseek(yuv444File, pos3+2, SEEK_SET);
-                        fputc(yuv.v, yuv444File);
-                        fseek(yuv444File, pos3+3, SEEK_SET);
-                        fputc(yuv.v, yuv444File);
+                        fseek(yuv444, pos3, SEEK_SET);
+                        fputc(yuv.v, yuv444);
+                        fseek(yuv444, pos3+1, SEEK_SET);
+                        fputc(yuv.v, yuv444);
+                        fseek(yuv444, pos3+2, SEEK_SET);
+                        fputc(yuv.v, yuv444);
+                        fseek(yuv444, pos3+3, SEEK_SET);
+                        fputc(yuv.v, yuv444);
                     }
-                }*/
+                }
             }   
 
             delta = omp_get_wtime() - start;
@@ -105,6 +100,9 @@ int main(void)
         }
 
     }
+
+        printf("DONE!\n");
+
         return 0;
 }
 

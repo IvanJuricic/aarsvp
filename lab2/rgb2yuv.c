@@ -21,86 +21,84 @@ int main(void) {
 
     RGB rgb;
     YUV yuv;
+    
+    FILE *rgbFile = fopen("rgb_video.yuv", "rb");
+    FILE *yuvFile = fopen("yuv_video.yuv", "ab");
+    FILE *yuv420 = fopen("yuv420_video.yuv", "ab");
+    FILE *yuv444 = fopen("yuv444_video.yuv", "ab");
 
-    // #pragma omp parallel
-    // {
-        FILE *rgbFile = fopen("rgb_video.yuv", "rb");
-        FILE *yuvFile = fopen("yuv_video.yuv_omp", "ab");
-        FILE *yuv420File = fopen("yuv420_video.yuv_omp", "ab");
-        FILE *yuv444File = fopen("yuv444_video.yuv_omp", "ab");
+    if(rgbFile == NULL || yuvFile == NULL || yuv420 == NULL || yuv444 == NULL) {
+        printf("Error opening file\n");
+        return -1;
+    }
 
-        // if(rgbFile == NULL || yuvFile == NULL || yuv420File == NULL || yuv444File == NULL)
-        // {
-        //     printf("Error opening file\n");
-        //     return -1;
-        // }
-
-        clock_t begin = clock();
-        int frame;
-        for(frame = 0; frame < MAX_FRAMES; ++frame)
+    clock_t begin = clock();
+    int frame;
+    for(frame = 0; frame < MAX_FRAMES; ++frame)
+    {
+        int i;
+        for(i = 0; i < PIXEL_COUNT; i++) 
         {
-            int i;
-            for(i = 0; i < PIXEL_COUNT; i++) 
+            int pos1 = frame*PIXEL_COUNT*3+i;
+            int pos2 = frame*PIXEL_COUNT*3+i+PIXEL_COUNT;
+            int pos3 = frame*PIXEL_COUNT*3+i+PIXEL_COUNT*2;
+
+            fseek(rgbFile, pos1, SEEK_SET);
+            rgb.r = fgetc(rgbFile);
+            fseek(rgbFile, pos2, SEEK_SET);
+            rgb.g = fgetc(rgbFile);
+            fseek(rgbFile, pos3, SEEK_SET);
+            rgb.b = fgetc(rgbFile);
+
+            yuv = convert2yuv(rgb);
+
+            //Generic
+            fseek(yuvFile, pos1, SEEK_SET);
+            fputc(yuv.y, yuvFile);
+            fseek(yuvFile, pos2, SEEK_SET);
+            fputc(yuv.u, yuvFile);
+            fseek(yuvFile, pos3, SEEK_SET);
+            fputc(yuv.v, yuvFile);
+            
+            // 420
+            fseek(yuv420, pos1, SEEK_SET);
+            fputc(yuv.y, yuv420);
+
+            fseek(yuv444, pos1, SEEK_SET);
+            fputc(yuv.y, yuv444);
+
+            if (i % 2 == 0)
             {
-                int pos1 = frame*PIXEL_COUNT*3+i;
-                int pos2 = frame*PIXEL_COUNT*3+i+PIXEL_COUNT;
-                int pos3 = frame*PIXEL_COUNT*3+i+PIXEL_COUNT*2;
+                fseek(yuv420, pos2/2, SEEK_SET);
+                fputc(yuv.u, yuv420);
 
-                fseek(rgbFile, pos1, SEEK_SET);
-                rgb.r = fgetc(rgbFile);
-                fseek(rgbFile, pos2, SEEK_SET);
-                rgb.g = fgetc(rgbFile);
-                fseek(rgbFile, pos3, SEEK_SET);
-                rgb.b = fgetc(rgbFile);
+                fseek(yuv444, pos2, SEEK_SET);
+                fputc(yuv.u, yuv444);
+                fseek(yuv444, pos2+1, SEEK_SET);
+                fputc(yuv.u, yuv444);
 
-                yuv = convert2yuv(rgb);
-
-                // ========== yuv ==========
-                fseek(yuvFile, pos1, SEEK_SET);
-                fputc(yuv.y, yuvFile);
-                fseek(yuvFile, pos2, SEEK_SET);
-                fputc(yuv.u, yuvFile);
-                fseek(yuvFile, pos3, SEEK_SET);
-                fputc(yuv.v, yuvFile);
-/*
-                // ========== yuv420 && yuv444 ==========
-                fseek(yuv420File, pos1, SEEK_SET);
-                fputc(yuv.y, yuv420File);
-
-                fseek(yuv444File, pos1, SEEK_SET);
-                fputc(yuv.y, yuv444File);
-
-                if (i % 2 == 0)
+                // 444
+                if (i % 4 == 0)
                 {
-                    fseek(yuv420File, pos2/2, SEEK_SET);
-                    fputc(yuv.u, yuv420File);
+                    fseek(yuv420, pos3/4, SEEK_SET);
+                    fputc(yuv.v, yuv420);
 
-                    fseek(yuv444File, pos2, SEEK_SET);
-                    fputc(yuv.u, yuv444File);
-                    fseek(yuv444File, pos2+1, SEEK_SET);
-                    fputc(yuv.u, yuv444File);
+                    fseek(yuv444, pos3, SEEK_SET);
+                    fputc(yuv.v, yuv444);
+                    fseek(yuv444, pos3+1, SEEK_SET);
+                    fputc(yuv.v, yuv444);
+                    fseek(yuv444, pos3+2, SEEK_SET);
+                    fputc(yuv.v, yuv444);
+                    fseek(yuv444, pos3+3, SEEK_SET);
+                    fputc(yuv.v, yuv444);
+                }
+            }
+        }   
 
-                    if (i % 4 == 0)
-                    {
-                        fseek(yuv420File, pos3/4, SEEK_SET);
-                        fputc(yuv.v, yuv420File);
-
-                        fseek(yuv444File, pos3, SEEK_SET);
-                        fputc(yuv.v, yuv444File);
-                        fseek(yuv444File, pos3+1, SEEK_SET);
-                        fputc(yuv.v, yuv444File);
-                        fseek(yuv444File, pos3+2, SEEK_SET);
-                        fputc(yuv.v, yuv444File);
-                        fseek(yuv444File, pos3+3, SEEK_SET);
-                        fputc(yuv.v, yuv444File);
-                    }
-                }*/
-            }   
-
-            clock_t end = clock();
-            double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-            printf("frame: %d time: %ld seconds\n", frame+1, time_spent);
-        }
+        clock_t end = clock();
+        double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+        printf("frame: %d time: %f seconds\n", frame+1, time_spent);
+    }
 
     return 0;
 }
